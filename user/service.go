@@ -4,6 +4,7 @@ import "golang.org/x/crypto/bcrypt"
 
 type Service interface {
 	RegisterUser(input RegisterUserInput) (User, error)
+	LoginUser(input LoginUserInput) (User, error)
 }
 
 type service struct {
@@ -35,4 +36,20 @@ func (s *service) RegisterUser(input RegisterUserInput) (User, error) {
 	}
 
 	return newUser, nil
+}
+
+func (s *service) LoginUser(input LoginUserInput) (User, error) {
+
+	newUser, err := s.repository.FindUserByEmail(input.Email)
+	if err != nil {
+		return newUser, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(newUser.PasswordHash), []byte(input.Password))
+	if err != nil {
+		return newUser, err
+	}
+
+	return newUser, nil
+
 }
