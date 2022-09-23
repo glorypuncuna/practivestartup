@@ -141,8 +141,6 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(userId)
-	fmt.Println(path)
 	isUploaded, err := h.userService.UploadAvatar(userId, path)
 	if err != nil {
 		e := gin.H{"errors": err}
