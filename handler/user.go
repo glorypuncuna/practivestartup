@@ -4,6 +4,7 @@ import (
 	"bwastartup/auth"
 	"bwastartup/helper"
 	"bwastartup/user"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -100,12 +101,14 @@ func (h *userHandler) CheckEmail(c *gin.Context) {
 		errorMessage := gin.H{"errors": errors}
 		response := helper.APIResponse("Enter valid email", 400, "Bad Request", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
+		return
 	}
 
 	check, err := h.userService.IsEmailAvailable(input)
 	if err != nil {
 		response := helper.APIResponse("An error has occured", 500, "Internal Server Error", err)
 		c.JSON(http.StatusInternalServerError, response)
+		return
 	}
 
 	formatter := user.FormatCheck(check)
@@ -113,31 +116,39 @@ func (h *userHandler) CheckEmail(c *gin.Context) {
 	if !check {
 		response = helper.APIResponse("Email is not available", 200, "Success", formatter)
 	}
+
 	c.JSON(http.StatusOK, response)
 }
 
 func (h *userHandler) UploadAvatar(c *gin.Context) {
+	user := c.MustGet("currentUser").(user.User)
+	userId := user.ID
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
 		e := gin.H{"errors": err}
 		response := helper.APIResponse("Something wrong with the file", 400, "Bad Request", e)
 		c.JSON(http.StatusBadRequest, response)
+		return
 	}
 
-	path := "images/" + file.Filename
+	path := fmt.Sprintf("images/%d-%s", userId, file.Filename)
 	err = c.SaveUploadedFile(file, path)
 	if err != nil {
 		e := gin.H{"errors": err}
-		response := helper.APIResponse("Could not save file", 500, "Inbternal Server Error", e)
+		response := helper.APIResponse("Could not save file", 500, "Internal Server Error", e)
 		c.JSON(http.StatusInternalServerError, response)
+		return
 	}
 
-	isUploaded, err := h.userService.UploadAvatar(6, path)
+	fmt.Println(userId)
+	fmt.Println(path)
+	isUploaded, err := h.userService.UploadAvatar(userId, path)
 	if err != nil {
 		e := gin.H{"errors": err}
-		response := helper.APIResponse("Could not save file", 500, "Inbternal Server Error", e)
+		response := helper.APIResponse("Could not save file", 500, "Internal Server Error", e)
 		c.JSON(http.StatusInternalServerError, response)
+		return
 	}
 
 	res := gin.H{"is_uploaded": isUploaded}
@@ -145,6 +156,7 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 	if !isUploaded {
 		response = helper.APIResponse("Avatar is not uploaded", 500, "Internal Server Error", res)
 		c.JSON(http.StatusInternalServerError, response)
+		return
 	}
 	c.JSON(http.StatusOK, response)
 }
