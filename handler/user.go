@@ -66,12 +66,38 @@ func (h *userHandler) LoginUser(c *gin.Context) {
 	if err != nil {
 		errors := err.Error()
 		errorMessage := gin.H{"error": errors}
-		response := helper.APIResponse("Password does not match our records", 401, "Unauthorized", errorMessage)
+		response := helper.APIResponse("Email or password does not match our records", 401, "Unauthorized", errorMessage)
 		c.JSON(http.StatusUnauthorized, response)
 		return
 	}
 
 	formatter := user.FormatUser(newUser, "tokentokentoken")
 	response := helper.APIResponse("Login Success", 200, "Success", formatter)
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *userHandler) CheckEmail(c *gin.Context) {
+
+	var input user.CheckEmailInput
+
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		errors := user.FormatValidationError(err)
+		errorMessage := gin.H{"errors": errors}
+		response := helper.APIResponse("Enter valid email", 400, "Bad Request", errorMessage)
+		c.JSON(http.StatusBadRequest, response)
+	}
+
+	check, err := h.userService.IsEmailAvailable(input)
+	if err != nil {
+		response := helper.APIResponse("An error has occured", 500, "Internal Server Error", err)
+		c.JSON(http.StatusInternalServerError, response)
+	}
+
+	formatter := user.FormatCheck(check)
+	response := helper.APIResponse("Email is available", 200, "Success", formatter)
+	if check == false {
+		response = helper.APIResponse("Email is not available", 200, "Success", formatter)
+	}
 	c.JSON(http.StatusOK, response)
 }

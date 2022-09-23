@@ -10,6 +10,10 @@ type UserFormatter struct {
 	Token      string `json:"token"`
 }
 
+type CheckFormatter struct {
+	Available bool `json:"available"`
+}
+
 func FormatUser(user User, token string) UserFormatter {
 	formatter := UserFormatter{
 		ID:         user.ID,
@@ -17,6 +21,14 @@ func FormatUser(user User, token string) UserFormatter {
 		Occupation: user.Occupation,
 		Email:      user.Email,
 		Token:      token,
+	}
+
+	return formatter
+}
+
+func FormatCheck(available bool) CheckFormatter {
+	formatter := CheckFormatter{
+		Available: available,
 	}
 
 	return formatter
