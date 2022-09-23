@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bwastartup/auth"
 	"bwastartup/helper"
 	"bwastartup/user"
 	"net/http"
@@ -10,10 +11,11 @@ import (
 
 type userHandler struct {
 	userService user.Service
+	authService auth.Service
 }
 
-func NewUserHandler(userService user.Service) *userHandler {
-	return &userHandler{userService}
+func NewUserHandler(userService user.Service, authService auth.Service) *userHandler {
+	return &userHandler{userService, authService}
 }
 
 func (h *userHandler) RegisterUser(c *gin.Context) {
@@ -36,11 +38,17 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 	newUser, err := h.userService.RegisterUser(input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, helper.APIResponse("Failed to register the account",
-			500, "Internasl Server Error", nil))
+			500, "Internal Server Error", nil))
 		return
 	}
 
-	formatter := user.FormatUser(newUser, "tokentokentoken")
+	token, err := h.authService.GenerateToken(newUser.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, helper.APIResponse("Failed to authenticate token",
+			500, "Internal Server Error", nil))
+		return
+	}
+	formatter := user.FormatUser(newUser, token)
 
 	c.JSON(http.StatusOK, helper.APIResponse("User has been registered.",
 		200, "success", formatter))
@@ -71,7 +79,13 @@ func (h *userHandler) LoginUser(c *gin.Context) {
 		return
 	}
 
-	formatter := user.FormatUser(newUser, "tokentokentoken")
+	token, err := h.authService.GenerateToken(newUser.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, helper.APIResponse("Failed to authenticate token",
+			500, "Internal Server Error", nil))
+		return
+	}
+	formatter := user.FormatUser(newUser, token)
 	response := helper.APIResponse("Login Success", 200, "Success", formatter)
 	c.JSON(http.StatusOK, response)
 }
@@ -96,7 +110,7 @@ func (h *userHandler) CheckEmail(c *gin.Context) {
 
 	formatter := user.FormatCheck(check)
 	response := helper.APIResponse("Email is available", 200, "Success", formatter)
-	if check == false {
+	if !check {
 		response = helper.APIResponse("Email is not available", 200, "Success", formatter)
 	}
 	c.JSON(http.StatusOK, response)
@@ -120,7 +134,7 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 	}
 
 	isUploaded, err := h.userService.UploadAvatar(6, path)
-	if err != nil || isUploaded == false {
+	if err != nil {
 		e := gin.H{"errors": err}
 		response := helper.APIResponse("Could not save file", 500, "Inbternal Server Error", e)
 		c.JSON(http.StatusInternalServerError, response)
@@ -128,5 +142,9 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 
 	res := gin.H{"is_uploaded": isUploaded}
 	response := helper.APIResponse("Avatar is uploaded", 200, "Success", res)
+	if !isUploaded {
+		response = helper.APIResponse("Avatar is not uploaded", 500, "Internal Server Error", res)
+		c.JSON(http.StatusInternalServerError, response)
+	}
 	c.JSON(http.StatusOK, response)
 }
