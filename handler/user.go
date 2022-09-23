@@ -101,3 +101,32 @@ func (h *userHandler) CheckEmail(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, response)
 }
+
+func (h *userHandler) UploadAvatar(c *gin.Context) {
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		e := gin.H{"errors": err}
+		response := helper.APIResponse("Something wrong with the file", 400, "Bad Request", e)
+		c.JSON(http.StatusBadRequest, response)
+	}
+
+	path := "images/" + file.Filename
+	err = c.SaveUploadedFile(file, path)
+	if err != nil {
+		e := gin.H{"errors": err}
+		response := helper.APIResponse("Could not save file", 500, "Inbternal Server Error", e)
+		c.JSON(http.StatusInternalServerError, response)
+	}
+
+	isUploaded, err := h.userService.UploadAvatar(6, path)
+	if err != nil || isUploaded == false {
+		e := gin.H{"errors": err}
+		response := helper.APIResponse("Could not save file", 500, "Inbternal Server Error", e)
+		c.JSON(http.StatusInternalServerError, response)
+	}
+
+	res := gin.H{"is_uploaded": isUploaded}
+	response := helper.APIResponse("Avatar is uploaded", 200, "Success", res)
+	c.JSON(http.StatusOK, response)
+}
