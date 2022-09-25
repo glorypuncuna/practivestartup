@@ -63,3 +63,26 @@ func (h *campaignHandler) GetCampaignById(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 
 }
+
+func (h *campaignHandler) CreateCampaign(c *gin.Context) {
+
+	user := c.MustGet("currentUser").(user.User)
+	var input campaign.CreateCampaignInput
+	err := c.ShouldBindJSON(&input)
+
+	if err != nil {
+		response := helper.APIResponse("Could not process yout input", 400, "Bad Request", err)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	newCampaign, err := h.campaignService.CreateCampaign(user, input)
+	if err != nil {
+		response := helper.APIResponse("Could not process your input", 400, "Bad Request", err)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.APIResponse("Campaign Created", 200, "Success", newCampaign)
+	c.JSON(http.StatusOK, response)
+}
