@@ -12,6 +12,7 @@ type Service interface {
 	GetCampaignById(input CampaignDetailInput) (Campaign, error)
 	CreateCampaign(input CreateCampaignInput) (Campaign, error)
 	UpdateCampaign(id int, input CreateCampaignInput) (Campaign, error)
+	SaveCampaignImage(input CampaignImageInput, filePath string) (CampaignImage, error)
 }
 
 type service struct {
@@ -76,17 +77,6 @@ func (s *service) UpdateCampaign(id int, input CreateCampaignInput) (Campaign, e
 		return campaign, err
 	}
 
-	// campaign := Campaign{
-	// 	ID:               id,
-	// 	UserId:           input.User.ID,
-	// 	Name:             input.Name,
-	// 	ShortDescription: input.ShortDescription,
-	// 	Description:      input.Description,
-	// 	Perks:            input.Perks,
-	// 	GoalAmount:       input.GoalAmount,
-	// 	User:             input.User,
-	// }
-
 	campaign.UserId = input.User.ID
 	campaign.Name = input.Name
 	campaign.ShortDescription = input.ShortDescription
@@ -103,4 +93,28 @@ func (s *service) UpdateCampaign(id int, input CreateCampaignInput) (Campaign, e
 	}
 
 	return newCampaign, nil
+}
+
+func (s *service) SaveCampaignImage(input CampaignImageInput, filePath string) (CampaignImage, error) {
+
+	isPrimary := 0
+	if input.IsPrimary {
+		isPrimary = 1
+		succes, err := s.repository.MarkAllImagesAsNonPrimary(input.CampaignID)
+		if err != nil || !succes {
+			return CampaignImage{}, err
+		}
+	}
+
+	campaignImage := CampaignImage{
+		CampaignId: input.CampaignID,
+		FileName:   filePath,
+		IsPrimary:  isPrimary,
+	}
+
+	newCampaignImage, err := s.repository.CreateImage(campaignImage)
+	if err != nil {
+		return newCampaignImage, err
+	}
+	return newCampaignImage, nil
 }

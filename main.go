@@ -42,6 +42,8 @@ func main() {
 	api.POST("/check-email", userHandler.CheckEmail)
 	api.POST("/upload-avatar", authMiddleware(authService, userService), userHandler.UploadAvatar)
 	api.POST("/campaign", authMiddleware(authService, userService), campaignHandler.CreateCampaign)
+	api.POST("/campaign-image", authMiddleware(authService, userService), campaignHandler.CreateImage)
+
 	api.PUT("/campaign/:id", authMiddleware(authService, userService), campaignHandler.UpdateCampaign)
 
 	api.GET("/campaigns", campaignHandler.GetCampaigns)

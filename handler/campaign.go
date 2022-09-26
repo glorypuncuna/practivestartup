@@ -4,6 +4,8 @@ import (
 	"bwastartup/campaign"
 	"bwastartup/helper"
 	"bwastartup/user"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -132,6 +134,72 @@ func (h *campaignHandler) UpdateCampaign(c *gin.Context) {
 
 	formatter := campaign.FormatCampaign(newCampaign)
 	response := helper.APIResponse("Campaign Created", 200, "Success", formatter)
+	c.JSON(http.StatusOK, response)
+
+}
+
+func (h *campaignHandler) CreateImage(c *gin.Context) {
+
+	currentUser := c.MustGet("currentUser").(user.User)
+
+	var input campaign.CampaignImageInput
+
+	err := c.ShouldBind(&input)
+	if err != nil {
+		errors := user.FormatValidationError(err)
+		errorMessage := gin.H{"error": errors}
+		response := helper.APIResponse("Could not process yout input", 402, "Unprocessable Entity", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	campaignId := campaign.CampaignDetailInput{
+		ID: input.CampaignID,
+	}
+
+	campaign, err := h.campaignService.GetCampaignById(campaignId)
+	if err != nil {
+		errors := user.FormatValidationError(err)
+		errorMessage := gin.H{"error": errors}
+		response := helper.APIResponse("Could not process yout input", 402, "Unprocessable Entity", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	if campaign.User != currentUser {
+		errorMessage := gin.H{"error": errors.New("Unauthorized")}
+		response := helper.APIResponse("You are not an authorized user", 401, "Unauthorized", errorMessage)
+		c.JSON(http.StatusUnauthorized, response)
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not process yout input", 402, "Unprocessable Entity", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	path := fmt.Sprintf("images/%d-%s", currentUser.ID, file.Filename)
+	err = c.SaveUploadedFile(file, path)
+	if err != nil {
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not process yout input", 402, "Unprocessable Entity", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	_, err = h.campaignService.SaveCampaignImage(input, path)
+	if err != nil {
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not process yout input", 402, "Unprocessable Entity", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	message := gin.H{"is_uploaded": true}
+	response := helper.APIResponse("Success", 200, "OK", message)
 	c.JSON(http.StatusOK, response)
 
 }
