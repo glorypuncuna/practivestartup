@@ -1,6 +1,7 @@
 package campaign
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gosimple/slug"
@@ -70,16 +71,30 @@ func (s *service) CreateCampaign(input CreateCampaignInput) (Campaign, error) {
 }
 
 func (s *service) UpdateCampaign(id int, input CreateCampaignInput) (Campaign, error) {
+	campaign, err := s.repository.FindById(id)
+	if err != nil {
+		return campaign, err
+	}
 
-	campaign := Campaign{
-		ID:               id,
-		UserId:           input.User.ID,
-		Name:             input.Name,
-		ShortDescription: input.ShortDescription,
-		Description:      input.Description,
-		Perks:            input.Perks,
-		GoalAmount:       input.GoalAmount,
-		User:             input.User,
+	// campaign := Campaign{
+	// 	ID:               id,
+	// 	UserId:           input.User.ID,
+	// 	Name:             input.Name,
+	// 	ShortDescription: input.ShortDescription,
+	// 	Description:      input.Description,
+	// 	Perks:            input.Perks,
+	// 	GoalAmount:       input.GoalAmount,
+	// 	User:             input.User,
+	// }
+
+	campaign.UserId = input.User.ID
+	campaign.Name = input.Name
+	campaign.ShortDescription = input.ShortDescription
+	campaign.Description = input.Description
+	campaign.Perks = input.Perks
+	campaign.GoalAmount = input.GoalAmount
+	if campaign.User != input.User {
+		return campaign, errors.New("Unathorized")
 	}
 
 	newCampaign, err := s.repository.UpdateCampaign(campaign)
