@@ -24,7 +24,8 @@ func (h *campaignHandler) GetCampaigns(c *gin.Context) {
 
 	campaigns, err := h.campaignService.GetCampaigns(userId)
 	if err != nil {
-		response := helper.APIResponse("Could not retrieve campaign", 400, "Bad Request", err)
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not retrieve campaign", 400, "Bad Request", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
@@ -39,21 +40,24 @@ func (h *campaignHandler) GetCampaignById(c *gin.Context) {
 	var input campaign.CampaignDetailInput
 	err := c.ShouldBindUri(&input)
 	if err != nil {
-		response := helper.APIResponse("Could not process yout input", 404, "Bad Request", err)
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not process yout input", 404, "Bad Request", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
 
 	campaignDetail, err := h.campaignService.GetCampaignById(input)
 	if err != nil {
-		response := helper.APIResponse("Could not find the campaign", 404, "Bad Request", err)
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not find the campaign", 404, "Bad Request", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
 
 	user, err := h.userService.GetUserById(campaignDetail.UserId)
 	if err != nil {
-		response := helper.APIResponse("Could not find the campaign", 404, "Bad Request", err)
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Could not find the campaign", 404, "Bad Request", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
@@ -66,19 +70,23 @@ func (h *campaignHandler) GetCampaignById(c *gin.Context) {
 
 func (h *campaignHandler) CreateCampaign(c *gin.Context) {
 
-	user := c.MustGet("currentUser").(user.User)
+	currentUser := c.MustGet("currentUser").(user.User)
 	var input campaign.CreateCampaignInput
 	err := c.ShouldBindJSON(&input)
+	input.User = currentUser
 
 	if err != nil {
-		response := helper.APIResponse("Could not process yout input", 400, "Bad Request", err)
-		c.JSON(http.StatusBadRequest, response)
+		errors := user.FormatValidationError(err)
+		errorMessage := gin.H{"error": errors}
+		response := helper.APIResponse("Could not process yout input", 402, "Unprocessable Entity", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
 		return
 	}
 
-	newCampaign, err := h.campaignService.CreateCampaign(user, input)
+	newCampaign, err := h.campaignService.CreateCampaign(input)
 	if err != nil {
-		response := helper.APIResponse("Could not process your input", 400, "Bad Request", err)
+		errorMessage := gin.H{"error": err}
+		response := helper.APIResponse("Failed to create the campaign", 400, "Bad Request", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
