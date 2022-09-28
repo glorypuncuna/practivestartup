@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"bwastartup/campaign"
 	"time"
 )
 
@@ -9,6 +10,19 @@ type TransactionByCampaignFormatter struct {
 	Name      string    `json:"name"`
 	Amount    int       `json:"amount"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type CampaignTransactionFormatter struct {
+	Name     string `json:"name"`
+	ImageUrl string `json:"image_url"`
+}
+
+type TransactionByUserFormatter struct {
+	ID        int                          `json:"id"`
+	Amount    int                          `json:"amount"`
+	Status    string                       `json:"status"`
+	CreatedAt time.Time                    `json:"created_at"`
+	Campaign  CampaignTransactionFormatter `json:"campaign"`
 }
 
 func FormatByCampaign(transaction Transaction) TransactionByCampaignFormatter {
@@ -33,4 +47,38 @@ func FormatAllByCampaign(transactions []Transaction) []TransactionByCampaignForm
 		formatAll = append(formatAll, formatter)
 	}
 	return formatAll
+}
+
+func FormatByUser(transaction Transaction) TransactionByUserFormatter {
+	var images campaign.CampaignImage
+	if len(transaction.Campaign.CampaignImages) != 0 {
+		for _, i := range transaction.Campaign.CampaignImages {
+			if i.IsPrimary == 1 {
+				images = i
+			}
+		}
+	}
+
+	campaignFormatter := CampaignTransactionFormatter{
+		Name:     transaction.Campaign.Name,
+		ImageUrl: images.FileName,
+	}
+
+	formatter := TransactionByUserFormatter{
+		ID:        transaction.ID,
+		Amount:    transaction.Amount,
+		Status:    transaction.Status,
+		CreatedAt: transaction.CreatedAt,
+		Campaign:  campaignFormatter,
+	}
+	return formatter
+}
+
+func FormatAllByUser(transactions []Transaction) []TransactionByUserFormatter {
+	var formatterAll []TransactionByUserFormatter
+	for _, transaction := range transactions {
+		formatter := FormatByUser(transaction)
+		formatterAll = append(formatterAll, formatter)
+	}
+	return formatterAll
 }
